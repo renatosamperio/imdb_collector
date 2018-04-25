@@ -1,0 +1,5 @@
+<launch>
+  <rosparam command="load" file="/opt/home_services/src/home_services/cfg/hs_params.yaml" />
+  <param name="/imdb_collector/list_term" type="string" value="$(find imdb_collector)/config" />
+  <node name="imdb_collector" pkg="imdb_collector" type="imdb_collector.py" args="--debug" />
+</launch>
