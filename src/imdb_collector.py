@@ -301,7 +301,7 @@ if __name__ == '__main__':
         ('~collect_imdb_data',  torrentQuery)
     ]
     pub_topics     = [
-        ('~topic2',  Bool)
+        ('service_result',     torrentInvoice)
     ]
     system_params  = [
         '/imdb_collector/database',
