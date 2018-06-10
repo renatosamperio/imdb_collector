@@ -298,7 +298,7 @@ if __name__ == '__main__':
 
     ## Defining static variables for subscribers and publishers
     sub_topics     = [
-        ('~topic1',  String)
+        ('~collect_imdb_data',  torrentQuery)
     ]
     pub_topics     = [
         ('~topic2',  Bool)
