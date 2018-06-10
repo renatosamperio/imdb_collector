@@ -305,7 +305,8 @@ if __name__ == '__main__':
     ]
     system_params  = [
         '/imdb_collector/database',
-        '/imdb_collector/collection'
+        '/imdb_collector/collection',
+        '/imdb_collector/list_term'
     ]
     
     ## Defining arguments
