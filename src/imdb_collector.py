@@ -109,10 +109,19 @@ class CollectIMDb(ros_node.RosNode):
             rate_sleep = rospy.Rate(5) 
             
             while not rospy.is_shutdown():
+                
                 with self.condition:
                     rospy.logdebug('+ Waiting for incoming data')
                     self.condition.wait()
 
+                ## Starting IMDb collector
+                self.CrawlDbRecords()
+                
+                ## Clearing data base credentials
+                self.data_database   = None
+                self.data_collection = None
+                self.retrieved_limit = None
+                
         except Exception as inst:
               utilities.ParseException(inst)
 
