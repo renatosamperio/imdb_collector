@@ -285,7 +285,7 @@ if __name__ == '__main__':
     
     args            = {}
     logLevel        = rospy.DEBUG if options.debug else rospy.INFO
-    rospy.init_node('imdb_collector_node', anonymous=False, log_level=logLevel)
+    rospy.init_node('imdb_collector', anonymous=False, log_level=logLevel)
 
     ## Removing ROS file logging
     if not options.do_ros_file:
