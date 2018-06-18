@@ -99,14 +99,6 @@ class CollectIMDb(ros_node.RosNode):
             rospy.Timer(rospy.Duration(0.5), self.Run, oneshot=True)
         except Exception as inst:
               utilities.ParseException(inst)
- 
-    def LoadTerms(self, fileName):
-        try:
-            with open(fileName, 'r') as file:
-                return file.read().strip().split()
-                
-        except Exception as inst:
-            utilities.ParseException(inst)
 
     def Run(self, event):
         ''' Execute this method to... '''
