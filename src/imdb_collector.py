@@ -82,10 +82,17 @@ class CollectIMDb(ros_node.RosNode):
             self.collection = self.mapped_params['/imdb_collector/collection'].param_value
             rospy.logdebug('+ Set collection [%s]'%str(self.collection))
             
+            ## Connecting to data collection
             rospy.logdebug("Connecting to [%s] with [%s] collections"% 
                                 (self.database, self.collection))
             self.db_handler = MongoAccess()
-            self.db_handler.connect(self.database, self.collection)
+            self.db_handler.Connect(self.database, self.collection)
+            
+            ## Creating IMDb handler
+            rospy.logdebug("Creating IMDb handler")
+            self.list_terms = self.mapped_params['/imdb_collector/list_term'].param_value
+            args = {'list_terms':   self.list_terms}
+            self.imdb_handler = imdb_handler.IMDbHandler(**args)
             
             ## Starting publisher thread
             rospy.loginfo('Initialising imdb_collector_node node')
