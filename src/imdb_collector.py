@@ -58,13 +58,18 @@ class CollectIMDb(ros_node.RosNode):
               
     def SubscribeCallback(self, msg, topic):
         try:
-            ## Get incoming message
-            with self.threats_lock:
-                self.object_variable    = msg
-
-            ## Notify thread that data has arrived
-            with self.condition:
-                self.condition.notifyAll()
+            if 'collect_imdb_data' in topic:
+                ## Get incoming message
+                self.data_database   = msg.database
+                self.data_collection = msg.collection
+                self.search_type     = msg.search_type
+                self.retrieved_limit = msg.page_limit
+                
+                rospy.loginfo('+ Got query in [%s/%s] of [%s] elements'%
+                               (self.data_database, self.data_collection, str(self.retrieved_limit)))
+                ## Notify thread that data has arrived
+                with self.condition:
+                    self.condition.notifyAll()
             
         except Exception as inst:
               utilities.ParseException(inst)
