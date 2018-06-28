@@ -11,11 +11,16 @@ import logging
 from hs_utils.mongo_handler import MongoAccess
 from hs_utils import ros_node
 from hs_utils import utilities
+from hs_utils import imdb_handler
 from optparse import OptionParser, OptionGroup
 from pprint import pprint
 
 from std_msgs.msg import Bool
 from std_msgs.msg import String
+from torrent_search.msg import torrentQuery
+from torrent_search.msg import torrentInvoice
+
+logging.getLogger('imdbpie').setLevel(logging.getLevelName('WARNING'))
 
 class CollectIMDb(ros_node.RosNode):
     def __init__(self, **kwargs):
