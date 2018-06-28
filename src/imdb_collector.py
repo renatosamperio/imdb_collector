@@ -44,15 +44,12 @@ class CollectIMDb(ros_node.RosNode):
             self.collection       = None
             self.db_handler       = None
             self.invoice          = None
-            self.list_terms       = None
             self.search_type      = None
-
-            ## Parsing arguments
-            for key, value in kwargs.iteritems():
-                if "list_term" == key:
-                    if value is not None:
-                        rospy.logdebug("  +   Loading list of terms")
-                        self.list_terms = self.LoadTerms(value)
+            self.imdb_handler     = None
+            self.list_terms       = None
+            self.data_database    = None
+            self.data_collection  = None
+            self.retrieved_limit  = None
             
             ## Initialise node activites
             self.Init()
