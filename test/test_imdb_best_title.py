@@ -9,15 +9,15 @@ list_terms = '/home/renato/workspace/projects/home_services/src/imdb_collector/c
 args = {'list_terms':   list_terms}
 ih = imdb_handler.IMDbHandler(**args)
 
-def look_imdb_data(title, do_test=True):
+def look_imdb_data(title, do_test=True, show_debug=False):
     if do_test:
-        clean_name  = ih.clean_sentence(title)
+        clean_name           = ih.clean_sentence(title, debug=show_debug)
         year_found, splitted = ih.skim_title(clean_name)
-        items = ih.get_imdb_best_title(splitted, year_found=year_found)
+        items                = ih.get_imdb_best_title(splitted, year_found=year_found)
         print "===> torrent_title:\t ", title
-        print "===> torrent_year:\t ", year_found
         print "===> clean_name:\t ", clean_name
         print "===> torrent_query:\t ", splitted
+        print "===> torrent_year:\t ", year_found
         
         # print "---> items:", items
         if len(items)>0:
@@ -149,5 +149,10 @@ title = "House at the End of the Street DVDRip XviD AXXP"
 look_imdb_data(title, do_test=do_test)
 
 title = "Как приручить дракона 2   How to Train Your Dragon 2 (2014) W.."
-look_imdb_data(title, do_test=True)
+look_imdb_data(title, do_test=do_test)
 
+title = "All Is Lost (2013) DVDRip rar"
+look_imdb_data(title, do_test=do_only_if)
+
+title = "Days Of Thunder (1990) 720p BR Rip x264 [ HINDI ] -« Im Loser -«"
+look_imdb_data(title, do_test=do_test, show_debug=False)
