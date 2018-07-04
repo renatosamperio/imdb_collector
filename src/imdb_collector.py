@@ -144,6 +144,70 @@ class CollectIMDb(ros_node.RosNode):
         finally:
             return self.invoice
 
+    def SearchTitleInfo(self, title):
+        result = True
+        try:
+            clean_name  = self.imdb_handler.clean_sentence(title)
+            if len(clean_name) < 1:
+                rospy.logwarn("   + Invalid cleaned title")
+                result = False
+                return
+            
+            year_found, splitted = self.imdb_handler.skim_title(clean_name)
+            if splitted is None:
+                rospy.logwarn("   + Invalid skimmed title")
+                result = False
+                return
+            elif len(splitted)<1:
+                rospy.logwarn('No title was given for [%s]'%title)
+                result = False
+                return
+            rospy.logdebug("   + Skimmed title: [%s]"%(splitted))
+            
+            ## Searching if item already exists
+            rospy.logdebug("  1.3.2 Searching if item [%s] already exists"%splitted)
+            title_exists = self.db_handler.Find({ "query_title": splitted})
+            if title_exists.count():
+                rospy.logdebug("        Title [%s] already exists"%splitted)
+                result = False
+                return
+            
+            ## Collecting IMDb data
+            rospy.logdebug("  1.3.3 Collecting best title of IMDb data")
+            items       = self.imdb_handler.get_imdb_best_title(splitted, year_found=year_found)
+            item_keys   = items.keys()
+            if len(items)<1:
+                rospy.loginfo("No IMDb info was found for [%s]"%splitted)
+                result = False
+                return
+                
+            ## Showing multiple items
+            if "imdb_info" in item_keys and len(items["imdb_info"])<1:
+                rospy.loginfo("No IMDb info was found for [%s]"%splitted)
+                result = False
+                return
+            
+            if "imdb_info" in item_keys and len(items["imdb_info"])>1:
+                rospy.loginfo("Items [%s] found"%(str(len(items["imdb_info"]))))
+                for item in items["imdb_info"]:
+                    rospy.loginfo("   title [%s] with score [%s]"%
+                                  (str(item['title']), str(item['score'])))
+
+            ## Updating record in IMDb database
+            query_title = None
+            if 'query_title'in item_keys:
+                query_title = items['query_title']
+            score_ = float(items['imdb_info'][0]['score'])
+            rospy.loginfo("  1.3.4 Inserted [%d] [%s] into DB with score [%2.4f]"%
+                          (counter, str(query_title), score_))
+            post_id = self.db_handler.Insert(items)
+            
+        except Exception as inst:
+            result = False
+            utilities.ParseException(inst)
+        finally:
+            return result
+
     def CrawlDbRecords(self):
         records = None
         try:
