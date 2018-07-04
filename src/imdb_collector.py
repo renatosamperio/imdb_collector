@@ -50,6 +50,7 @@ class CollectIMDb(ros_node.RosNode):
             self.data_database    = None
             self.data_collection  = None
             self.retrieved_limit  = None
+            self.entry_step       = None
             
             ## Initialise node activites
             self.Init()
@@ -81,6 +82,8 @@ class CollectIMDb(ros_node.RosNode):
             rospy.logdebug('+ Set database [%s]'%str(self.database))
             self.collection = self.mapped_params['/imdb_collector/collection'].param_value
             rospy.logdebug('+ Set collection [%s]'%str(self.collection))
+            self.entry_step = self.mapped_params['/imdb_collector/entry_step'].param_value
+            rospy.logdebug('+ Set entry step [%s]'%str(self.entry_step))
             
             ## Connecting to data collection
             rospy.logdebug("Connecting to [%s] with [%s] collections"% 
@@ -306,7 +309,8 @@ if __name__ == '__main__':
     system_params  = [
         '/imdb_collector/database',
         '/imdb_collector/collection',
-        '/imdb_collector/list_term'
+        '/imdb_collector/list_term',
+        '/imdb_collector/entry_step'
     ]
     
     ## Defining arguments
