@@ -242,70 +242,45 @@ class CollectIMDb(ros_node.RosNode):
             rospy.logdebug("1.3 Updating records")
             counter         = 1
             record_counter  = 0
-            for record in records:
-                record_counter += 1
-                #title       = record['name']
-                title       = u''.join(record['name']).encode('utf-8').strip()
-                if 'Autobahnpolizei' in title:
-                    print "===> THIS FAILED!!!"
-                rospy.logdebug("  1.3.1 [%s] Getting cleaned movie title [%s]"%
-                               (str(record_counter), title))
-                clean_name  = self.imdb_handler.clean_sentence(title)
-                if len(clean_name) < 1:
-                    rospy.logdebug("   + Invalid cleaned title")
-                    continue
-                
-                year_found, splitted = self.imdb_handler.skim_title(clean_name)
-                if splitted is None:
-                    rospy.logdebug("   + Invalid skimmed title")
-                    continue
-                elif len(splitted)<1:
-                    rospy.logwarn('No title was given for [%s]'%title)
-                    continue
-                rospy.logdebug("   + Skimmed title: [%s]"%(splitted))
-                
-                ## Searching if item already exists
-                rospy.logdebug("  1.3.2 Searching if item [%s] already exists"%splitted)
-                title_exists = self.db_handler.Find({ "query_title": splitted})
-                if title_exists.count():
-                    rospy.logdebug("        Title [%s] already exists"%splitted)
-                    continue
-                
-                ## Collecting IMDb data
-                rospy.logdebug("  1.3.3 Collecting best title of IMDb data")
-                items       = self.imdb_handler.get_imdb_best_title(splitted, year_found=year_found)
-                item_keys   = items.keys()
-                if len(items)<1:
-                    rospy.logwarn("No IMDb info was found for [%s]"%splitted)
-                    continue
-                    
-                ## Showing multiple items
-                if "imdb_info" in item_keys and len(items["imdb_info"])<1:
-                    rospy.logwarn("No IMDb info was found for [%s]"%splitted)
-                    continue
-                
-                if "imdb_info" in item_keys and len(items["imdb_info"])>1:
-                    rospy.loginfo("Items [%s] found"%(str(len(items["imdb_info"]))))
-                    for item in items["imdb_info"]:
-                        rospy.loginfo("   title [%s] with score [%s]"%
-                                      (str(item['title']), str(item['score'])))
-
-                ## Updating IMDb data
-                query_title = None
-                if 'query_title'in item_keys:
-                    query_title = items['query_title']
-                score_ = float(items['imdb_info'][0]['score'])
-                rospy.loginfo("  1.3.4 Inserted [%d] [%s] into DB with score [%2.4f]"%
-                              (counter, str(query_title), score_))
-                post_id = self.db_handler.Insert(items)
-                
-                #pprint(items)
-                counter += 1
-                if counter > self.retrieved_limit:
-                    break
+            start_index     = 0
+            step            = self.entry_step
             
-            rospy.loginfo("Closing, mongo cursor as it has timed out")
-            records.close()
+            while start_index < records_found:
+                ## Consider a change in step while it is working
+                step        = self.mapped_params['/imdb_collector/entry_step'].param_value
+            
+                ## After defining entries, cursor will
+                ##    be disabled
+                if not records.alive:
+                    records = db_handler.Find(query, timeout=True)
+                    rospy.logdebug("   + Querying DB again...")
+                    
+                end_index   = start_index+step
+                entries     = records[start_index:end_index]
+                rospy.logwarn("1.3.0 Collected entries from [%d] to [%d] from [%d]"%
+                               (start_index, end_index, entries.count()))
+                for record in entries:
+                    record_counter += 1
+                    title       = u''.join(record['name']).encode('utf-8').strip()
+                    
+                    ## Searching title information
+                    rospy.logdebug("  1.3.1 [%s] Getting cleaned movie title [%s]"%
+                               (str(record_counter), title))
+                    titleFonud = self.SearchTitleInfo(title)
+                    
+                    if titleFonud:
+                        counter += 1
+                        if counter > self.retrieved_limit:
+                            break
+                    #pprint(items)
+                
+                ## Increasing index
+                start_index += step
+        
+            if records.alive:
+                rospy.loginfo("Closing, mongo cursor as timed out is disabled")
+                records.close()
+                records = None
         except Exception as inst:
               utilities.ParseException(inst)
         finally:
