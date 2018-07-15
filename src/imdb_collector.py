@@ -162,7 +162,17 @@ class CollectIMDb(ros_node.RosNode):
                 rospy.logwarn('No title was given for [%s]'%title)
                 result = False
                 return
-            rospy.logdebug("   + Skimmed title: [%s]"%(splitted))
+            try:
+                rospy.logdebug("   + Skimmed title: [%s]"%(splitted))
+            except UnicodeDecodeError as inst:
+                print "---> UnicodeDecodeError error splitted:\t\t ", splitted
+                print "---> UnicodeDecodeError error splitted.type:\t ", type(splitted)
+                utilities.ParseException(inst)
+            except UnicodeEncodeError as inst:
+                print "---> UnicodeEncodeError error splitted:\t\t ", splitted
+                print "---> UnicodeEncodeError error splitted.type:\t ", type(splitted)
+                splitted = splitted.encode('utf8')
+                rospy.logwarn( "Encoding UTF and ignoring characters")
             
             ## Searching if item already exists
             rospy.logdebug("  1.3.2 Searching if item [%s] already exists"%splitted)
