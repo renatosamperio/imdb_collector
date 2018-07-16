@@ -184,6 +184,8 @@ class CollectIMDb(ros_node.RosNode):
             
             ## Collecting IMDb data
             rospy.logdebug("  1.3.3 Collecting best title of IMDb data")
+            if type(splitted) != type(u''):
+                splitted = splitted.decode('utf8', 'ignore')
             items       = self.imdb_handler.get_imdb_best_title(splitted, year_found=year_found)
             item_keys   = items.keys()
             if len(items)<1:
