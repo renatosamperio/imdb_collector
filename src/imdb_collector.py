@@ -214,6 +214,14 @@ class CollectIMDb(ros_node.RosNode):
             if 'query_title'in item_keys:
                 query_title = items['query_title']
             score_ = float(items['imdb_info'][0]['score'])
+            if score_ < 1:
+                try:
+                    rospy.loginfo("Score [%s] too small for being considered"% str(splitted))
+                except UnicodeEncodeError as inst:
+                    rospy.logwarn("Score too small for being considered")
+                result = False
+                return
+                
             rospy.loginfo("  1.3.4 Inserted [%d] [%s] into DB with score [%2.4f]"%
                           (counter, str(query_title), score_))
             post_id = self.db_handler.Insert(items)
