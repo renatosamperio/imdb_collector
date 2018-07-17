@@ -275,8 +275,9 @@ class CollectIMDb(ros_node.RosNode):
             record_counter  = 0
             start_index     = 0
             step            = self.entry_step
+            keepSearch      = True
             
-            while start_index < records_found:
+            while start_index < records_found and keepSearch:
                 ## Consider a change in step while it is working
                 step        = self.mapped_params['/imdb_collector/entry_step'].param_value
             
@@ -297,11 +298,12 @@ class CollectIMDb(ros_node.RosNode):
                     ## Searching title information
                     rospy.logdebug("  1.3.1 [%s] Getting cleaned movie title [%s]"%
                                (str(record_counter), title))
-                    titleFonud = self.SearchTitleInfo(title)
+                    titleFonud = self.SearchTitleInfo(title, counter)
                     
                     if titleFonud:
                         counter += 1
                         if counter > self.retrieved_limit:
+                            keepSearch = False
                             break
                     #pprint(items)
                 
