@@ -144,15 +144,17 @@ class CollectIMDb(ros_node.RosNode):
         finally:
             return self.invoice
 
-    def SearchTitleInfo(self, title):
+    def SearchTitleInfo(self, title, counter):
         result = True
         try:
+            ## CHECK:If cleaned sentence is invalid stop process
             clean_name  = self.imdb_handler.clean_sentence(title)
             if len(clean_name) < 1:
                 rospy.logwarn("   + Invalid cleaned title")
                 result = False
                 return
             
+            ## CHECK: If splitted sentnece is invalid stop process
             year_found, splitted = self.imdb_handler.skim_title(clean_name)
             if splitted is None:
                 rospy.logwarn("   + Invalid skimmed title")
@@ -174,7 +176,8 @@ class CollectIMDb(ros_node.RosNode):
                 splitted = splitted.encode('utf8')
                 rospy.logwarn( "Encoding UTF and ignoring characters")
             
-            ## Searching if item already exists
+            
+            ## CHECK: Searching if item already exists
             rospy.logdebug("  1.3.2 Searching if item [%s] already exists"%splitted)
             title_exists = self.db_handler.Find({ "query_title": splitted})
             if title_exists.count():
@@ -188,6 +191,8 @@ class CollectIMDb(ros_node.RosNode):
                 splitted = splitted.decode('utf8', 'ignore')
             items       = self.imdb_handler.get_imdb_best_title(splitted, year_found=year_found)
             item_keys   = items.keys()
+            
+            ## CHECK: If no items are found stop process
             if len(items)<1:
                 try:
                     rospy.loginfo("No IMDb info was found for [%s]"%splitted)
@@ -197,7 +202,7 @@ class CollectIMDb(ros_node.RosNode):
                 result = False
                 return
                 
-            ## Showing multiple items
+            ## CHECK: Showing multiple items or no items
             if "imdb_info" in item_keys and len(items["imdb_info"])<1:
                 rospy.loginfo("No IMDb info was found for [%s]"%splitted)
                 result = False
@@ -213,6 +218,8 @@ class CollectIMDb(ros_node.RosNode):
             query_title = None
             if 'query_title'in item_keys:
                 query_title = items['query_title']
+            
+            ## CHECK: Insert if it is worthy to generate a record in DB 
             score_ = float(items['imdb_info'][0]['score'])
             if score_ < 1:
                 try:
