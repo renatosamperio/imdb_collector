@@ -189,7 +189,11 @@ class CollectIMDb(ros_node.RosNode):
             items       = self.imdb_handler.get_imdb_best_title(splitted, year_found=year_found)
             item_keys   = items.keys()
             if len(items)<1:
-                rospy.loginfo("No IMDb info was found for [%s]"%splitted)
+                try:
+                    rospy.loginfo("No IMDb info was found for [%s]"%splitted)
+                except UnicodeEncodeError as inst:
+                    splitted = splitted.encode('utf8')
+                    rospy.logwarn("No IMDb info was found for [%s]"%splitted)
                 result = False
                 return
                 
