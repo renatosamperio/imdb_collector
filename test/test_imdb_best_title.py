@@ -156,3 +156,13 @@ look_imdb_data(title, do_test=do_only_if)
 
 title = "Days Of Thunder (1990) 720p BR Rip x264 [ HINDI ] -« Im Loser -«"
 look_imdb_data(title, do_test=do_test, show_debug=False)
+
+title = 'Как приручить дракона 2   How to Train Your Dragon 2 (2014) W..'
+#title = 'Как приручить дракона 2   How to Train Your Dragon 2 (2014) W..'
+look_imdb_data(title, do_test=do_test)
+
+title = 'La jalousié REPACK DVDRip 2014'
+look_imdb_data(title, do_test=do_test)
+
+title = 'Les Misérables'
+look_imdb_data(title, do_test=do_test)
