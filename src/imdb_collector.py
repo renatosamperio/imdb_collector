@@ -171,8 +171,8 @@ class CollectIMDb(ros_node.RosNode):
                 print "---> UnicodeDecodeError error splitted.type:\t ", type(splitted)
                 utilities.ParseException(inst)
             except UnicodeEncodeError as inst:
-                print "---> UnicodeEncodeError error splitted:\t\t ", splitted
-                print "---> UnicodeEncodeError error splitted.type:\t ", type(splitted)
+#                 print "---> UnicodeEncodeError error splitted:\t\t ", splitted
+#                 print "---> UnicodeEncodeError error splitted.type:\t ", type(splitted)
                 splitted = splitted.encode('utf8')
                 rospy.logwarn( "Encoding UTF and ignoring characters")
             
