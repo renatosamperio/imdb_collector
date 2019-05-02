@@ -167,8 +167,6 @@ class CollectIMDb(ros_node.RosNode):
             try:
                 rospy.logdebug("   + Skimmed title: [%s]"%(splitted))
             except UnicodeDecodeError as inst:
-                print "---> UnicodeDecodeError error splitted:\t\t ", splitted
-                print "---> UnicodeDecodeError error splitted.type:\t ", type(splitted)
                 utilities.ParseException(inst)
             except UnicodeEncodeError as inst:
 #                 print "---> UnicodeEncodeError error splitted:\t\t ", splitted
