@@ -178,6 +178,9 @@ class CollectIMDb(ros_node.RosNode):
             ## CHECK: Searching if item already exists
             rospy.logdebug("  1.3.2 Searching if item [%s] already exists"%splitted)
             title_exists = self.db_handler.Find({ "query_title": splitted})
+            if not title_exists:
+                rospy.logwarn("Missing title [%s]"%splitted)
+                
             if title_exists.count():
                 rospy.logdebug("        Title [%s] already exists"%splitted)
                 result = False
@@ -331,7 +334,7 @@ if __name__ == '__main__':
                 action='store_true',
                 default=False,
                 help='Message latching')
-    parser.add_option('--debug',
+    parser.add_option('--debug', '-d',
                 action='store_true',
                 default=False,
                 help='Provide debug level')
