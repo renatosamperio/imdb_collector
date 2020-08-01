@@ -3,7 +3,6 @@
 import sys, os
 import threading
 import rospy
-import datetime
 import time
 import Queue
 import json
@@ -11,7 +10,8 @@ import pymongo
 
 from optparse import OptionParser, OptionGroup
 from pprint import pprint
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 from hs_utils import imdb_handler
 from hs_utils import ros_node, logging_utils
@@ -39,6 +39,8 @@ class ImdbCollector:
                     self.torrents_collection = value
                 elif "imdb_collection" == key:
                     self.imdb_collection = value
+                elif "latest_collection" == key:
+                    self.latest_collection = value
                 elif "list_terms" == key:
                     self.list_terms = value
 
@@ -68,6 +70,20 @@ class ImdbCollector:
                 rospy.loginfo("Created DB handler in %s.%s"%
                               (self.database, self.imdb_collection))
             
+            ## Creating DB handler
+            self.latest_db = MongoAccess()
+            connected       = self.latest_db.Connect(
+                                                self.database, 
+                                                self.latest_collection)
+            ## Checking if DB connection was successful
+            if not connected:
+                raise Exception('DB [%s.%s] not available'%
+                              (self.database, self.latest_collection))
+            else:
+                rospy.loginfo("Created DB handler in %s.%s"%
+                              (self.database, self.latest_collection))
+            
+            
             args = {
                 'list_terms':self.list_terms,
                 'imdb':      True
@@ -78,6 +94,54 @@ class ImdbCollector:
         except Exception as inst:
               ros_node.ParseException(inst)
     
+    def find_imdb_data(self, imdb_id, galaxy_id):
+        dict_row = None
+        existed  = False
+        try:
+            ## updating DB records with new item
+            condition = { 'imdb_id' : imdb_id }
+            ## Inserting record if it would not exists
+            posts = self.imdb_db.Find(condition)
+            
+            ## Checking for latest
+            posts_items = posts.count()
+            if posts_items>0:
+                if posts_items>1:
+                    rospy.logwarn("Record [%s] has [%d] items"%(imdb_id, posts_items))
+                    
+                    for p in posts:
+                        pprint(p)
+                        print "-- "*10
+                rospy.logdebug('  IMDB item [%s] was found locally'%imdb_id)
+                dict_row = posts[0]
+                
+                ## TODO check if it is too old, renew it?
+            else:
+                rospy.loginfo("Collecting [%s]"%(imdb_id))
+                dict_row = self.imdb_handler.get_info(imdb_id)
+                
+                ## inserting new record
+                datetime_now = datetime.now() 
+                rospy.logdebug("Inserting in DB [%s]"%imdb_id)
+                datetime_now = datetime.now() 
+                dict_row['last_updated'] = datetime_now
+                result = self.imdb_db.Insert(dict_row)
+                
+                ## update latest timestamp that it was updated
+                q = {"galaxy_id"    : galaxy_id}
+                u = {"imdb_updated" : datetime_now }
+                res = self.torrents_db.Update(condition=q, substitute=u)
+                if not res: rospy.logdebug(' Not updated in [%s]'%galaxy_id)
+                rospy.loginfo('Retrieved IMDB for [%s]'%imdb_id)
+                
+                ## double check if something went wrong while updating DB
+                if not result: rospy.logwarn('Invalid DB update for [%s]'%dict_row['imdb_id'])
+                existed  = True
+        except Exception as inst:
+              ros_node.ParseException(inst)
+        finally:
+            return dict_row, existed
+            
     def search(self):
         try:
             query = { 
@@ -95,47 +159,138 @@ class ImdbCollector:
                 ## searching for torrent in IMDB
                 imdb_id = torrent['imdb_code']
                 if not imdb_id:
-                    rospy.logwarn("Missing IMDB id for [%s]"%(torrent['title']))
+                    rospy.logdebug("Missing IMDB id for [%s]"%(torrent['title']))
                     continue
                 
-                ## updating DB records with new item
-                condition = { 'imdb_id' : imdb_id }
-                ## Inserting record if it would not exists
-                posts = self.imdb_db.Find(condition)
-                
-                ## Checking for latest
-                if posts.count()>0:
-                    rospy.logdebug("Record [%s] already exists"%imdb_id)
-                    ## TODO check if it is too old, renew it?
+                ## updating IMDB data
+                dict_row, existed = self.find_imdb_data( imdb_id, torrent['galaxy_id'])
+                if not dict_row:
+                    rospy.logwarn("Invalid IMDB info collected")
                     continue
                 
-                rospy.loginfo("Collecting [%s => %s]"%(torrent['title'], imdb_id))
-                dict_row = self.imdb_handler.get_info(imdb_id)
-                
-                ## setting update time
-                datetime_now = datetime.now() 
-                torrent['imdb_updated'] = datetime_now
-                
-                ## inserting new record
-                rospy.logdebug("Inserting in DB [%s]"%imdb_id)
-                datetime_now = datetime.now() 
-                dict_row['last_updated'] = datetime_now
-                result = self.imdb_db.Insert(dict_row)
-                
-                ## update latest timestamp that it was updated
-                q = {"galaxy_id"    : torrent['galaxy_id']}
-                u = {"imdb_updated" : datetime_now }
-                res = self.torrents_db.Update(condition=q, substitute=u)
-                if not res: rospy.logdebug(' Not updated in [%s]'%torrent['galaxy_id'])
-                rospy.logdebug('Updated in [%s]'%torrent['galaxy_id'])
-                
-                ## double check if something went wrong while updating DB
-                if not result: rospy.logwarn('Invalid DB update for [%s]'%dict_row['imdb_id'])
+                ## setting update time if it was retrieved from IMDB web
+                if not existed: 
+                    datetime_now = datetime.now() 
+                    torrent['imdb_updated'] = datetime_now
 
             rospy.loginfo("Finished searching IMDB info")
         except Exception as inst:
               ros_node.ParseException(inst)
-      
+
+    def merge_latest(self):
+        '''
+        Collecting torrents with IMDB info
+        '''
+        try:
+            rospy.logdebug('Preparing infomration for latest torrents')
+            date_latest = datetime.now() - timedelta(hours=12)
+            query = { 
+                '$and': 
+                [
+                    {'torrent_updated': { '$exists': True}}, 
+                    {'torrent_updated': { '$gte':    date_latest}} 
+                ]
+            };
+            
+            sort = [
+                ("torrent_updated", pymongo.DESCENDING)
+            ]
+            ## search for latest page only and be sure to
+            ## review ones with latest set IMDB information
+            posts  = self.torrents_db.Find(query, sort_condition=sort)
+            rospy.loginfo("Found [%d] torrents to update"%posts.count())
+            
+            latest = defaultdict(lambda: {})
+            
+            for torrent in posts:
+
+                ## assign given imdb code as index of torrent state
+                galaxy_id    = torrent['galaxy_id']
+                if 'imdb_code' not in torrent:
+                    rospy.logdebug('Record [%s] without IMDB code'%galaxy_id)
+                    continue
+                
+                ## validate imdb code
+                t_imdb = torrent['imdb_code']
+                if not t_imdb:
+                    rospy.loginfo('Torrent [%s] has no IMDB'%galaxy_id)
+                    continue
+                
+                ## check if imdb code is already seen in latest
+                posts = self.latest_db.Find({'imdb_code': t_imdb})
+                torrent_exists = False
+                for found in posts:
+                    for item in found['torrents']:
+                        if galaxy_id == item['galaxy_id']:
+                            torrent_exists = True
+                            break
+                
+                if torrent_exists:
+                    rospy.logdebug('-  Found torrent [%s] in [%s]'%(t_imdb, galaxy_id))
+                    continue
+                    
+                ## getting torrent data to display
+                torrent_record = {
+                    'title':        torrent['title'],
+                    'magnet':       torrent['magnet'],
+                    'file':         torrent['file'],
+                    'leechers':     torrent['leechers'],
+                    'seeders':      torrent['seeders'],
+                    'views':        torrent['views'],
+                    'size':         torrent['size'],
+                    'galaxy_id':    galaxy_id,
+                }
+                
+                ## this element provides distinguishable 
+                ## information about each torrent
+                if 'torrent_info' in torrent:
+                    torrent_record.update({'torrent_info': torrent['torrent_info']})
+
+                ## prepare a collection with latest seen
+                if posts.count()>0:
+                    ## item already has a record and has to be updated
+                    q = {'imdb_code': t_imdb};
+                    u = {'torrents': torrent_record}
+                    ok = self.latest_db.Update(condition=q, substitute=u, 
+                            upsertValue=True, operator='$push')
+            
+                    ## double check if something went wrong while updating DB
+                    if not ok: rospy.logwarn('Invalid DB update for [%s]'%t_imdb)
+                    rospy.logdebug('-  Updated [%s] with [%s]'%(t_imdb, galaxy_id))
+                    continue
+                
+                ## got first element of torrent IMDB
+                if t_imdb:
+                    imdb_info, e = self.find_imdb_data( t_imdb, galaxy_id )
+                    if not imdb_info: ospy.logwarn("Invalid IMDB info collected")
+        
+                ## prepare record, use as index galaxy and IMDB ids
+                new_record = {
+                    'imdb_code':    t_imdb,
+                    'torrents':    [torrent_record],
+                    'imdb':         imdb_info,
+                    'last_updated': datetime.now()
+                }
+        
+                ## insert item as a latest seen torrent
+                ok = self.latest_db.Insert(new_record)
+                if not ok: rospy.logwarn('Item [%s] was not inserted'%(t_imdb))
+                rospy.logdebug('+  Created [%s] with [%s]'%(t_imdb, galaxy_id))
+
+        except Exception as inst:
+            ros_node.ParseException(inst)
+
+    def close(self):
+        try:
+            self.torrents_db.debug = 0
+            self.imdb_db.debug     = 0
+            self.latest_db.debug   = 0
+            self.torrents_db.Close()
+            self.imdb_db.Close()
+            self.latest_db.Close()
+        except Exception as inst:
+              ros_node.ParseException(inst)
+    
 class GalaxyImdb(ros_node.RosNode):
     def __init__(self, **kwargs):
         try:
@@ -165,6 +320,7 @@ class GalaxyImdb(ros_node.RosNode):
             
             args = {
                 'database':           'galaxy',
+                'latest_collection':  'latest',
                 'torrents_collection':'torrents',
                 'imdb_collection':    'imdb',
                 'list_terms':         self.list_terms
@@ -192,7 +348,10 @@ class GalaxyImdb(ros_node.RosNode):
                     
     def ShutdownCallback(self):
         try:
-            rospy.logdebug('+ Shutdown: Doing nothing...')
+            rospy.logdebug('+ Shutdown: Closing torrent parser')
+            if self.crawler:
+                self.crawler.close()
+                self.crawler = None
         except Exception as inst:
               ros_node.ParseException(inst)
               
@@ -202,14 +361,17 @@ class GalaxyImdb(ros_node.RosNode):
             rospy.logdebug('+ Starting run method')
             rate_sleep = rospy.Rate(1.0/self.rate)
             while not rospy.is_shutdown():
-                    
+
                 rospy.logdebug('  Looking for information in IMDB')
                 self.crawler.search()
+                
+                rospy.logdebug('  Merging latest torrents')
+                self.crawler.merge_latest()
+
                 rate_sleep.sleep()
             
         except Exception as inst:
               ros_node.ParseException(inst)
-
 
 if __name__ == '__main__':
     usage       = "usage: %prog option1=string option2=bool"

@@ -43,8 +43,15 @@ def look_imdb_data(title, do_test=True, show_debug=False):
 
 do_only_if = 0
 do_test = 0
+
+title = 'Buried Worlds with Don Wildman Series Part Vampire Hunt'
+look_imdb_data(title, do_test=1)
+
+title = 'The 11th Hour with Brian Williams 2020 07 16'
+look_imdb_data(title, do_test=1)
+
 title = 'Ted 2O12'
-look_imdb_data(title, do_test=do_test)
+look_imdb_data(title, do_test=0)
 
 title = 'This Is The End 2013 HDTS XviD CHEESE'
 look_imdb_data(title, do_test=do_test)
