@@ -59,6 +59,8 @@ hdvd
 subecstasy
 dvdrxvid-cocainx264-tdm
 0hkaynikonxp
+subs
+subs)
 tdmalcp2pfxg
 inside
 maxspeed
@@ -170,6 +172,7 @@ kinohithd
 bdrip(avc)
 rar
 aac-nondrm
+hindi
 fhdrip
 bender
 greatqual
@@ -196,3 +199,5 @@ eac3
 qxr
 hmax
 hxd
+webrip
+webdl

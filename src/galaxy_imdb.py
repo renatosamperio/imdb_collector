@@ -121,10 +121,9 @@ class ImdbCollector:
                 dict_row = self.imdb_handler.get_info(imdb_id)
                 
                 ## inserting new record
-                datetime_now = datetime.now() 
                 rospy.logdebug("Inserting in DB [%s]"%imdb_id)
                 datetime_now = datetime.now() 
-                dict_row['last_updated'] = datetime_now
+                dict_row.update({'last_updated' : datetime_now})
                 result = self.imdb_db.Insert(dict_row)
                 
                 ## update latest timestamp that it was updated
