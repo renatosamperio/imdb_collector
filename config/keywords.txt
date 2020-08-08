@@ -4,3 +4,8 @@ MSNBC's
 TVO
 RTE
 Ch5
+CNN
+Ch4
+NG
+QUEST
+HGTV

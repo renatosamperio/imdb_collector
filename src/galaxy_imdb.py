@@ -106,14 +106,14 @@ class ImdbCollector:
             ## Checking for latest
             posts_items = posts.count()
             if posts_items>0:
+                rospy.logdebug("Record [%s] has [%d] items"%(imdb_id, posts_items))
+                dict_row = posts[0]
                 if posts_items>1:
-                    rospy.logwarn("Record [%s] has [%d] items"%(imdb_id, posts_items))
-                    
                     for p in posts:
                         pprint(p)
                         print "-- "*10
+                    
                 rospy.logdebug('  IMDB item [%s] was found locally'%imdb_id)
-                dict_row = posts[0]
                 
                 ## TODO check if it is too old, renew it?
             else:
@@ -261,7 +261,7 @@ class ImdbCollector:
                 ## got first element of torrent IMDB
                 if t_imdb:
                     imdb_info, e = self.find_imdb_data( t_imdb, galaxy_id )
-                    if not imdb_info: ospy.logwarn("Invalid IMDB info collected")
+                    if not imdb_info: rospy.logwarn("Invalid IMDB info collected")
         
                 ## prepare record, use as index galaxy and IMDB ids
                 new_record = {
