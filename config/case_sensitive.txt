@@ -168,7 +168,6 @@ MNBC
 mkvCinemas Telly
 ESub
 AHDTV
-E D
 PROPER
 UNCENSORED
 TAoE
@@ -195,3 +194,9 @@ TRVL
 (Deep61)[TGx]
 [Telly]
 BigJ0554
+ESubs
+CRAV
+DDH
+t3nzin
+(2)
+4Kto1080p
